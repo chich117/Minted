@@ -44,19 +44,42 @@
   const GRAVITY = 1500;        // px / s^2
   const FLAP_VELOCITY = -430;  // px / s
   const MAX_FALL = 700;
-  const PIPE_SPEED = 150;      // px / s
-  const PIPE_GAP = 165;        // vertical opening
   const PIPE_WIDTH = 60;
-  const PIPE_SPACING = 220;    // horizontal distance between pipes
   const GROUND_HEIGHT = 96;
   const PLAY_HEIGHT = H - GROUND_HEIGHT;
 
   const BIRD_X = 90;
   const BIRD_R = 15;
 
+  // ---------- Difficulty (ramps up with score) ----------
+  // Pipes start slow and roomy, then get faster, closer together, and tighter
+  // as the score climbs — clamped so it stays fair.
+  const BASE_PIPE_SPEED = 140;   // px / s at score 0
+  const MAX_PIPE_SPEED = 280;
+  const SPEED_PER_POINT = 4;
+
+  const BASE_PIPE_GAP = 175;     // vertical opening at score 0
+  const MIN_PIPE_GAP = 120;
+  const GAP_PER_POINT = 2.5;
+
+  const BASE_PIPE_SPACING = 230; // horizontal distance between pipes at score 0
+  const MIN_PIPE_SPACING = 165;
+  const SPACING_PER_POINT = 3;
+
+  function currentSpeed() {
+    return Math.min(MAX_PIPE_SPEED, BASE_PIPE_SPEED + score * SPEED_PER_POINT);
+  }
+  function currentGap() {
+    return Math.max(MIN_PIPE_GAP, BASE_PIPE_GAP - score * GAP_PER_POINT);
+  }
+  function currentSpacing() {
+    return Math.max(MIN_PIPE_SPACING, BASE_PIPE_SPACING - score * SPACING_PER_POINT);
+  }
+
   // ---------- Game state ----------
   const State = { READY: 0, PLAYING: 1, OVER: 2 };
   let state = State.READY;
+  let paused = false;
 
   const bird = { y: PLAY_HEIGHT / 2, vy: 0, angle: 0 };
   let pipes = [];
@@ -78,6 +101,8 @@
   // ---------- DOM ----------
   const startScreen = document.getElementById("start-screen");
   const gameoverScreen = document.getElementById("gameover-screen");
+  const pauseScreen = document.getElementById("pause-screen");
+  const pauseBtn = document.getElementById("pause-btn");
   const scoreEl = document.getElementById("score");
   const finalScoreEl = document.getElementById("final-score");
   const bestScoreEl = document.getElementById("best-score");
@@ -119,8 +144,11 @@
   // ---------- Game flow ----------
   function spawnPipe(x) {
     const margin = 60;
-    const gapY = margin + Math.random() * (PLAY_HEIGHT - PIPE_GAP - margin * 2);
-    pipes.push({ x, gapY, scored: false });
+    // Each pipe captures the gap size at spawn time, so difficulty ramps in
+    // smoothly as the score rises.
+    const gap = currentGap();
+    const gapY = margin + Math.random() * (PLAY_HEIGHT - gap - margin * 2);
+    pipes.push({ x, gapY, gap, scored: false });
   }
 
   function resetGame() {
@@ -133,7 +161,7 @@
     let x = W + 80;
     for (let i = 0; i < 4; i++) {
       spawnPipe(x);
-      x += PIPE_SPACING;
+      x += currentSpacing();
     }
   }
 
@@ -141,20 +169,37 @@
     ensureAudio();
     resetGame();
     state = State.PLAYING;
+    paused = false;
+    pauseScreen.classList.add("hidden");
     startScreen.classList.add("hidden");
     gameoverScreen.classList.add("hidden");
     hud.style.display = "flex";
+    pauseBtn.classList.remove("hidden");
     flap();
   }
 
   function flap() {
-    if (state !== State.PLAYING) return;
+    if (state !== State.PLAYING || paused) return;
     bird.vy = FLAP_VELOCITY;
     sndFlap();
   }
 
+  function setPaused(value) {
+    if (state !== State.PLAYING) return;
+    paused = value;
+    pauseScreen.classList.toggle("hidden", !paused);
+    pauseBtn.textContent = paused ? "▶" : "❚❚";
+    if (!paused) lastTime = 0; // avoid a dt jump on resume
+  }
+  function togglePause() {
+    setPaused(!paused);
+  }
+
   function gameOver() {
     state = State.OVER;
+    paused = false;
+    pauseScreen.classList.add("hidden");
+    pauseBtn.classList.add("hidden");
     sndHit();
     hud.style.display = "none";
     finalScoreEl.textContent = score;
@@ -184,14 +229,36 @@
       if (state === State.READY) startGame();
       else if (state === State.PLAYING) flap();
       else if (state === State.OVER) startGame();
+    } else if (e.code === "KeyP" || e.code === "Escape") {
+      e.preventDefault();
+      togglePause();
     }
   });
 
+  // The pause button sits above the canvas; stop the tap from also flapping.
+  function onPauseTap(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    togglePause();
+  }
+  pauseBtn.addEventListener("touchstart", onPauseTap, { passive: false });
+  pauseBtn.addEventListener("click", onPauseTap);
+
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", startGame);
+  document.getElementById("resume-btn").addEventListener("click", () => setPaused(false));
+
+  // Auto-pause when the tab/app loses focus so a run isn't lost in the background.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) setPaused(true);
+  });
+  window.addEventListener("blur", () => setPaused(true));
 
   // ---------- Update ----------
   function update(dt) {
+    // When paused, freeze the world entirely.
+    if (paused) return;
+
     // Clouds drift slowly regardless of state.
     for (const c of clouds) {
       c.x -= 12 * c.s * dt;
@@ -202,12 +269,14 @@
       }
     }
 
+    const speed = currentSpeed();
+
     if (state !== State.PLAYING) {
       // Gentle idle bob on the ready screen.
       if (state === State.READY) {
         bird.y = PLAY_HEIGHT / 2 + Math.sin(performance.now() / 300) * 8;
       }
-      groundScroll = (groundScroll - PIPE_SPEED * dt) % 24;
+      groundScroll = (groundScroll - speed * dt) % 24;
       return;
     }
 
@@ -216,11 +285,11 @@
     bird.y += bird.vy * dt;
     bird.angle = Math.max(-0.5, Math.min(1.4, bird.vy / 600));
 
-    groundScroll = (groundScroll - PIPE_SPEED * dt) % 24;
+    groundScroll = (groundScroll - speed * dt) % 24;
 
     // Pipes.
     for (const p of pipes) {
-      p.x -= PIPE_SPEED * dt;
+      p.x -= speed * dt;
       if (!p.scored && p.x + PIPE_WIDTH < BIRD_X - BIRD_R) {
         p.scored = true;
         score++;
@@ -232,7 +301,7 @@
     if (pipes.length && pipes[0].x + PIPE_WIDTH < -10) {
       pipes.shift();
       const lastX = pipes[pipes.length - 1].x;
-      spawnPipe(lastX + PIPE_SPACING);
+      spawnPipe(lastX + currentSpacing());
     }
 
     // Collisions.
@@ -249,7 +318,7 @@
       if (
         BIRD_X + BIRD_R > p.x &&
         BIRD_X - BIRD_R < p.x + PIPE_WIDTH &&
-        (bird.y - BIRD_R < p.gapY || bird.y + BIRD_R > p.gapY + PIPE_GAP)
+        (bird.y - BIRD_R < p.gapY || bird.y + BIRD_R > p.gapY + p.gap)
       ) {
         gameOver();
         return;
@@ -290,7 +359,7 @@
 
   function drawPipe(p) {
     const topH = p.gapY;
-    const botY = p.gapY + PIPE_GAP;
+    const botY = p.gapY + p.gap;
     const botH = PLAY_HEIGHT - botY;
     const lip = 14;
 
@@ -423,4 +492,13 @@
   // On the ready screen show a single bird hovering; pipes appear on start.
   pipes = [];
   requestAnimationFrame(loop);
+
+  // ---------- PWA: register service worker for offline install ----------
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {
+        /* offline support is optional; ignore registration failures */
+      });
+    });
+  }
 })();

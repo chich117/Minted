@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#4ec0ca" />
+  <title>Flappy Dash</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game"></canvas>
+
+    <!-- Score shown during play -->
+    <div id="hud">
+      <div id="score">0</div>
+    </div>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="overlay">
+      <h1>Flappy Dash</h1>
+      <p class="subtitle">Tap to fly</p>
+      <button id="start-btn" class="btn">Play</button>
+      <div class="best-line">Best: <span id="start-best">0</span></div>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="gameover-screen" class="overlay hidden">
+      <h2>Game Over</h2>
+      <div class="result-card">
+        <div class="result-row"><span>Score</span><span id="final-score">0</span></div>
+        <div class="result-row"><span>Best</span><span id="best-score">0</span></div>
+      </div>
+      <div id="new-best" class="new-best hidden">New Best!</div>
+      <button id="restart-btn" class="btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

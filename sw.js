@@ -1,5 +1,5 @@
 // Flappy Dash service worker — caches the app shell for offline play.
-const CACHE = "flappy-dash-v2";
+const CACHE = "flappy-dash-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,17 +28,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  // Cache-first: the game is fully static, so serve from cache when possible.
+  // Network-first: always try to fetch the latest version, updating the cache as
+  // we go, and fall back to the cache only when offline. This means new deploys
+  // show up after a single reload instead of being stuck behind a stale cache.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-          return resp;
-        }).catch(() => cached)
-      );
-    })
+    fetch(event.request)
+      .then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        return resp;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

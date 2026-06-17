@@ -83,6 +83,7 @@
 
   const bird = { y: PLAY_HEIGHT / 2, vy: 0, angle: 0 };
   let pipes = [];
+  let particles = []; // gas puffs trailing from the bird's rear
   let score = 0;
   let best = Number(localStorage.getItem("flappyDashBest") || 0);
   let groundScroll = 0;
@@ -134,7 +135,44 @@
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
   }
-  const sndFlap = () => beep(620, 0.09, "square", 0.05);
+  // A synthesized fart: a low sawtooth that sputters (gain wobble via an LFO)
+  // and slides down in pitch, with a touch of randomness so no two are alike.
+  function sndFart() {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const dur = 0.22 + Math.random() * 0.14;
+
+    const osc = audioCtx.createOscillator();
+    osc.type = "sawtooth";
+    const startF = 115 + Math.random() * 55;
+    const endF = 55 + Math.random() * 25;
+    osc.frequency.setValueAtTime(startF, t0);
+    osc.frequency.exponentialRampToValueAtTime(endF, t0 + dur);
+
+    // Lowpass tames the harshness into a wet "brap".
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 850;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.linearRampToValueAtTime(0.13, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+    // LFO on the amplitude creates the flatulent sputter.
+    const lfo = audioCtx.createOscillator();
+    lfo.type = "square";
+    lfo.frequency.setValueAtTime(16 + Math.random() * 16, t0);
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 0.05;
+    lfo.connect(lfoGain).connect(gain.gain);
+
+    osc.connect(lp).connect(gain).connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+    lfo.start(t0);
+    lfo.stop(t0 + dur);
+  }
   const sndScore = () => beep(880, 0.12, "sine", 0.07);
   function sndHit() {
     beep(180, 0.18, "sawtooth", 0.08);
@@ -156,6 +194,7 @@
     bird.vy = 0;
     bird.angle = 0;
     pipes = [];
+    particles = [];
     score = 0;
     scoreEl.textContent = "0";
     let x = W + 80;
@@ -178,10 +217,30 @@
     flap();
   }
 
+  // Spawn a little cloud of gas behind the bird's tail (it faces right, so the
+  // rear is on the left side).
+  function emitGas() {
+    const n = 5 + ((Math.random() * 4) | 0);
+    const rearX = BIRD_X - BIRD_R * 0.7;
+    const rearY = bird.y + 5;
+    for (let i = 0; i < n; i++) {
+      particles.push({
+        x: rearX + (Math.random() * 6 - 3),
+        y: rearY + (Math.random() * 8 - 4),
+        vx: -70 - Math.random() * 70,
+        vy: Math.random() * 36 - 18,
+        life: 0,
+        maxLife: 0.45 + Math.random() * 0.45,
+        r: 3 + Math.random() * 4,
+      });
+    }
+  }
+
   function flap() {
     if (state !== State.PLAYING || paused) return;
     bird.vy = FLAP_VELOCITY;
-    sndFlap();
+    sndFart();
+    emitGas();
   }
 
   function setPaused(value) {
@@ -254,10 +313,29 @@
   });
   window.addEventListener("blur", () => setPaused(true));
 
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life += dt;
+      if (p.life >= p.maxLife) {
+        particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy -= 28 * dt;          // gas slowly rises
+      p.vx *= 1 - 0.9 * dt;     // drag
+      p.r += 11 * dt;           // puff expands as it dissipates
+    }
+  }
+
   // ---------- Update ----------
   function update(dt) {
     // When paused, freeze the world entirely.
     if (paused) return;
+
+    // Gas puffs drift and fade in every state.
+    updateParticles(dt);
 
     // Clouds drift slowly regardless of state.
     for (const c of clouds) {
@@ -467,11 +545,24 @@
     }
   }
 
+  function drawParticles() {
+    for (const p of particles) {
+      const t = p.life / p.maxLife;
+      const alpha = (1 - t) * 0.55;
+      // Greenish-yellow gas cloud, fading and expanding.
+      ctx.fillStyle = `rgba(150, 190, 70, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function render() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
     for (const p of pipes) drawPipe(p);
     drawGround();
+    drawParticles(); // behind the bird so it looks like it's trailing out the rear
     drawBird();
   }
 

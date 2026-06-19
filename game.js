@@ -135,36 +135,38 @@
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
   }
-  // A synthesized fart: a low sawtooth that sputters (gain wobble via an LFO)
+  // A synthesized fart: a buzzy sawtooth that sputters (gain wobble via an LFO)
   // and slides down in pitch, with a touch of randomness so no two are alike.
+  // Pitch is kept high enough that small phone speakers can actually reproduce
+  // it — sub-150Hz tones are inaudible on most phones.
   function sndFart() {
     if (!audioCtx) return;
     const t0 = audioCtx.currentTime;
-    const dur = 0.22 + Math.random() * 0.14;
+    const dur = 0.24 + Math.random() * 0.14;
 
     const osc = audioCtx.createOscillator();
     osc.type = "sawtooth";
-    const startF = 115 + Math.random() * 55;
-    const endF = 55 + Math.random() * 25;
+    const startF = 190 + Math.random() * 80;
+    const endF = 95 + Math.random() * 45;
     osc.frequency.setValueAtTime(startF, t0);
     osc.frequency.exponentialRampToValueAtTime(endF, t0 + dur);
 
-    // Lowpass tames the harshness into a wet "brap".
+    // Higher cutoff lets the buzzy harmonics through so it's audible on phones.
     const lp = audioCtx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = 850;
+    lp.frequency.value = 2200;
 
     const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.linearRampToValueAtTime(0.13, t0 + 0.02);
+    gain.gain.linearRampToValueAtTime(0.35, t0 + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
 
     // LFO on the amplitude creates the flatulent sputter.
     const lfo = audioCtx.createOscillator();
     lfo.type = "square";
-    lfo.frequency.setValueAtTime(16 + Math.random() * 16, t0);
+    lfo.frequency.setValueAtTime(18 + Math.random() * 18, t0);
     const lfoGain = audioCtx.createGain();
-    lfoGain.gain.value = 0.05;
+    lfoGain.gain.value = 0.14;
     lfo.connect(lfoGain).connect(gain.gain);
 
     osc.connect(lp).connect(gain).connect(audioCtx.destination);
@@ -282,6 +284,15 @@
   // Use the container so taps anywhere count, but let buttons work normally.
   canvas.addEventListener("touchstart", onTap, { passive: false });
   canvas.addEventListener("mousedown", onTap);
+
+  // Unlock/resume audio on the first interaction anywhere. iOS in particular
+  // only lets an AudioContext start from inside a user gesture, and sometimes
+  // needs a resume on touchend as well.
+  function unlockAudio() {
+    ensureAudio();
+  }
+  window.addEventListener("touchend", unlockAudio, { passive: true });
+  window.addEventListener("pointerdown", unlockAudio, { passive: true });
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space" || e.code === "ArrowUp") {
       e.preventDefault();

@@ -1,5 +1,5 @@
 // Flappy Dash service worker — caches the app shell for offline play.
-const CACHE = "flappy-dash-v4";
+const CACHE = "flappy-dash-v5";
 const ASSETS = [
   "./",
   "./index.html",

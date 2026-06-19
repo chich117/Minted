@@ -146,8 +146,12 @@
 
     const osc = audioCtx.createOscillator();
     osc.type = "sawtooth";
-    const startF = 190 + Math.random() * 80;
-    const endF = 95 + Math.random() * 45;
+    // Pitch tracks altitude: higher in the air -> higher pitch, near the ground
+    // -> lower pitch. heightFactor is 0 at the ground and 1 at the top.
+    const heightFactor = 1 - Math.max(0, Math.min(1, bird.y / PLAY_HEIGHT));
+    const pitchMul = 0.8 + heightFactor * 1.0; // ~0.8x near ground, ~1.8x up high
+    const startF = (190 + Math.random() * 80) * pitchMul;
+    const endF = (95 + Math.random() * 45) * pitchMul;
     osc.frequency.setValueAtTime(startF, t0);
     osc.frequency.exponentialRampToValueAtTime(endF, t0 + dur);
 

@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["claude/flappy-bird-game-4ar2b7"]
+    branches: ["claude/tiny-wings-game-clone-unnzez"]
   workflow_dispatch:
 
 # Permissions needed for the GITHUB_TOKEN to publish to Pages.

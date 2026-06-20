@@ -37,8 +37,9 @@ canvas {
   left: 0;
   right: 0;
   display: flex;
-  justify-content: center;
-  padding-top: max(24px, env(safe-area-inset-top));
+  flex-direction: column;
+  align-items: center;
+  padding-top: max(34px, calc(env(safe-area-inset-top) + 10px));
   pointer-events: none;
 }
 
@@ -48,6 +49,21 @@ canvas {
   color: #fff;
   text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
   letter-spacing: 1px;
+  line-height: 1;
+}
+
+#mult {
+  margin-top: 2px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  visibility: hidden;
+}
+
+#mult.fever {
+  color: #ffb02e;
+  text-shadow: 0 0 10px rgba(255, 150, 30, 0.9), 0 2px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* Pause button */
@@ -119,6 +135,14 @@ h2 {
   font-size: 20px;
   color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
+}
+
+.hint {
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  max-width: 280px;
 }
 
 .btn {

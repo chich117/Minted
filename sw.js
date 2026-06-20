@@ -1,5 +1,5 @@
-// Flappy Dash service worker — caches the app shell for offline play.
-const CACHE = "flappy-dash-v5";
+// Wingy Hills service worker — caches the app shell for offline play.
+const CACHE = "wingy-hills-v1";
 const ASSETS = [
   "./",
   "./index.html",

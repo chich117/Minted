@@ -6,16 +6,18 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#sky)"/>
-  <!-- ground -->
-  <rect y="430" width="512" height="82" fill="#ded895"/>
-  <rect y="430" width="512" height="16" fill="#73c043"/>
-  <!-- bird -->
-  <g transform="translate(256 250)">
-    <circle r="120" fill="#f5d000" stroke="#c79a00" stroke-width="10"/>
-    <circle cx="-16" cy="34" r="74" fill="#fff0a0"/>
-    <ellipse cx="-16" cy="20" rx="64" ry="40" fill="#ffffff" stroke="#c79a00" stroke-width="6"/>
-    <circle cx="56" cy="-40" r="40" fill="#fff"/>
-    <circle cx="66" cy="-40" r="19" fill="#000"/>
-    <polygon points="96,-8 176,16 96,48" fill="#ff8c1a"/>
+  <!-- sun -->
+  <circle cx="378" cy="150" r="58" fill="#fff2b0"/>
+  <!-- rolling hills -->
+  <path d="M0 360 Q128 250 256 360 T512 360 V512 H0 Z" fill="#56a83c"/>
+  <path d="M0 360 Q128 250 256 360 T512 360" fill="none" stroke="#78cd57" stroke-width="20" stroke-linecap="round"/>
+  <!-- diving bird -->
+  <g transform="translate(196 250) rotate(28)">
+    <circle r="78" fill="#f5d000" stroke="#c79a00" stroke-width="8"/>
+    <circle cx="-10" cy="22" r="48" fill="#fff0a0"/>
+    <ellipse cx="-12" cy="12" rx="40" ry="26" fill="#ffffff" stroke="#c79a00" stroke-width="5"/>
+    <circle cx="38" cy="-26" r="26" fill="#fff"/>
+    <circle cx="46" cy="-26" r="12" fill="#000"/>
+    <polygon points="62,-6 116,12 62,32" fill="#ff8c1a"/>
   </g>
 </svg>

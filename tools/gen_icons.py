@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate PWA PNG icons without external image libraries.
 
-Renders a simple Flappy Dash icon (sky background, ground strip, and a bird)
-into RGBA pixel buffers and encodes them as PNG using only the standard
+Renders a simple Wingy Hills icon (sky, a setting sun, rolling hills, and a
+bird) into RGBA pixel buffers and encodes them as PNG using only the standard
 library. Run from the repo root:
 
     python3 tools/gen_icons.py
@@ -41,14 +41,21 @@ def render(size):
     # Colors
     sky_top = (78, 192, 202)
     sky_bot = (155, 231, 236)
-    ground = (222, 216, 149)
-    grass = (115, 192, 67)
+    hill = (86, 168, 60)
+    grass = (120, 205, 87)
+    sun = (255, 242, 176)
 
-    ground_y = size * 430 / 512
-    grass_h = size * 16 / 512
+    grass_h = size * 18 / 512
 
-    bx, by = size / 2, size * 250 / 512
-    bird_r = size * 120 / 512
+    bx, by = size * 0.42, size * 250 / 512
+    bird_r = size * 110 / 512
+
+    # Rolling-hill surface: a gentle cosine bump across the icon.
+    def hill_y(x):
+        t = x / size
+        return size * (0.70 - 0.12 * math.cos(t * math.tau))
+
+    sun_cx, sun_cy, sun_r = size * 0.74, size * 0.29, size * 0.115
 
     def put(x, y, color, a=1.0):
         i = (y * size + x) * 4
@@ -66,11 +73,14 @@ def render(size):
         for x in range(size):
             if not rounded(0, 0, size, size, radius, x, y):
                 continue
-            # Background: sky gradient then ground.
-            if y >= ground_y:
-                color = grass if y < ground_y + grass_h else ground
+            hy = hill_y(x)
+            if y >= hy:
+                color = grass if y < hy + grass_h else hill
             else:
-                color = lerp(sky_top, sky_bot, y / ground_y)
+                color = lerp(sky_top, sky_bot, y / (size * 0.84))
+                # Setting sun glow.
+                if math.hypot(x - sun_cx, y - sun_cy) <= sun_r:
+                    color = sun
             put(x, y, color)
 
     # Bird body (anti-aliased edge).

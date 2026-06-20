@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#4ec0ca" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Flappy Dash" />
-  <title>Flappy Dash</title>
+  <meta name="apple-mobile-web-app-title" content="Wingy Hills" />
+  <title>Wingy Hills</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon-180.png" />
@@ -18,9 +18,10 @@
   <div id="game-container">
     <canvas id="game"></canvas>
 
-    <!-- Score shown during play -->
+    <!-- Score + multiplier shown during play -->
     <div id="hud">
       <div id="score">0</div>
+      <div id="mult">x1</div>
     </div>
 
     <!-- Pause button (visible only while playing) -->
@@ -34,16 +35,18 @@
 
     <!-- Start screen -->
     <div id="start-screen" class="overlay">
-      <h1>Flappy Dash</h1>
-      <p class="subtitle">Tap to fly</p>
+      <h1>Wingy Hills</h1>
+      <p class="subtitle">Hold to dive, release to glide</p>
+      <p class="hint">Dive down the slopes to build speed,<br />then soar off the hilltops.</p>
       <button id="start-btn" class="btn">Play</button>
       <div class="best-line">Best: <span id="start-best">0</span></div>
     </div>
 
     <!-- Game over screen -->
     <div id="gameover-screen" class="overlay hidden">
-      <h2>Game Over</h2>
+      <h2>Night Fell</h2>
       <div class="result-card">
+        <div class="result-row"><span>Distance</span><span id="final-dist">0 m</span></div>
         <div class="result-row"><span>Score</span><span id="final-score">0</span></div>
         <div class="result-row"><span>Best</span><span id="best-score">0</span></div>
       </div>
